@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: lambdas.
+
+Parameters:
+    LambdaExecutionRole:
+        Type: String
+
+Resources:
+  LambdaFunction1:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: Extract_API_COVID_USA
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: test-v1-etl-servless-data # Valor original del parametro: awdataclouders-s3-data-2
+          S3_BUCKET_PATH: Raw/Usa/
+      Runtime: python3.9
+      Handler: lambda_function_USA.lambda_handler
+      Role: !Ref LambdaExecutionRole
+      Code:
+        S3Bucket: test-v1-etl-servless-lambda-code # Valor original del parametro: awdataclouders-s3-lambda-code-2
+        S3Key: lambda_function_USA.zip
+      Timeout: 120
+      MemorySize: 128
+
+  LambdaFunction2:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: Extract_API_COVID_COL
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: test-v1-etl-servless-data # Valor original del parametro: awdataclouders-s3-data-2
+          S3_BUCKET_PATH: Raw/Col/
+      Runtime: python3.9
+      Handler: lambda_function_COL.lambda_handler
+      Role: !Ref LambdaExecutionRole
+      Code:
+        S3Bucket: test-v1-etl-servless-lambda-code # Valor original del parametro: awdataclouders-s3-lambda-code-2
+        S3Key: lambda_function_COL.zip
+      Timeout: 120
+      MemorySize: 128
