@@ -71,6 +71,3 @@ Resources:
         #Type: "AWS::CloudFormation::Stack"
         #Properties:
             #TemplateURL: https://aw1289001-public-bucket.s3.us-east-1.amazonaws.com/template-ec2.yaml
-
-
-
