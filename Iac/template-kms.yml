@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: iam roles.
+
+Resources:
+  S3KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Enabled: true
+      EnableKeyRotation: false
+      KeyPolicy: 
+        Version: "2012-10-17"
+        Id: politicas-llave
+        Statement:
+          - Sid: Habilitar uso de KMS
+            Effect: Allow
+            Principal: 
+              AWS: !Join ["",["arn:aws:iam::", !Ref 'AWS::AccountId', ":root"]]
+            Action: 
+              - 'kms:*'
+            Resource: '*'
+          - Sid: Allow use of the key
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+            Resource: "*"
+
+  MyKmsKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/my-key-alias-${AWS::StackName}"
+      TargetKeyId: !Ref S3KMSKey
+
+Outputs:
+  kmss3:
+      Value: !Ref S3KMSKey
+      Export:
+        Name: kmss3
+  kmsarn:
+      Value: !GetAtt S3KMSKey.Arn
+      Export:
+        Name: kmsarn
