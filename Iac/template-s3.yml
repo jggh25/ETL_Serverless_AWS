@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: iam roles.
+
+Parameters:
+    S3KMSKey:
+        Type: String
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: test-v1-etl-serverless-data # Valor original del parametro: awdataclouders-s3-data-2
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref S3KMSKey
+
+  S3Bucketlambda:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: test-v1-etl-serverless-lambda-code # Valor original del parametro: awdataclouders-s3-lambda-code-2
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref S3KMSKey
+
+  S3Bucketglue:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: test-v1-etl-serverless-glue-code # Valor original del parametro: awdataclouders-s3-glue-code-2
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref S3KMSKey
+
+  SampleBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: [S3Bucket]
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: 
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource: 
+              - !Sub "arn:aws:s3:::${S3Bucket}"
+              - !Sub "arn:aws:s3:::${S3Bucket}/*"
+            Principal:
+              Service: "glue.amazonaws.com"
+
+  SampleBucketPolicy2:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: [S3Bucketlambda]
+    Properties:
+      Bucket: !Ref S3Bucketlambda
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: 
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource: 
+              - !Sub "arn:aws:s3:::${S3Bucketlambda}"
+              - !Sub "arn:aws:s3:::${S3Bucketlambda}/*"
+            Principal: 
+              Service: "lambda.amazonaws.com"
+
+  SampleBucketPolicy3:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: [S3Bucketglue]
+    Properties:
+      Bucket: !Ref S3Bucketglue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: 
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource: 
+              - !Sub "arn:aws:s3:::${S3Bucketglue}"
+              - !Sub "arn:aws:s3:::${S3Bucketglue}/*"
+            Principal:
+              Service: "glue.amazonaws.com"
+
+Outputs:
+  Bucketdata:
+      Value: !Sub "arn:aws:s3:::${S3Bucketglue}"
+      Export:
+        Name: Bucketdata
