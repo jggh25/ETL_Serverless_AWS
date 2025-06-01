@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Step function.
+
+Parameters:
+    StepExecutionRole:
+        Type: String
+
+Resources:
+  MyStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: StepFunctionETLServerless
+      RoleArn: !Ref StepExecutionRole
+      DefinitionString: |
+        {
+          "Comment": "Parallel execution of two Lambda functions followed by a Glue job",
+          "StartAt": "Parallel",
+          "States": {
+            "Parallel": {
+              "Type": "Parallel",
+              "Branches": [
+                {
+                  "StartAt": "LambdaInvokeUSA",
+                  "States": {
+                    "LambdaInvokeUSA": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:us-east-1:135808920063:function:Extract_API_COVID_USA",
+                      "ResultPath": "$.Timestamp",
+                      "End": true
+                    }
+                  }
+                },
+                {
+                  "StartAt": "LambdaInvokeCOL",
+                  "States": {
+                    "LambdaInvokeCOL": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:us-east-1:135808920063:function:Extract_API_COVID_COL",
+                      "ResultPath": "$.Timestamp",
+                      "End": true
+                    }
+                  }
+                }
+              ],
+              "Next": "GlueStartJobRun",
+              "ResultPath": "$.ParallelResult"
+            },
+            "GlueStartJobRun": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "GlueTransform",
+                "Arguments": {
+                  "--INPUT_BUCKET": "s3://test-v1-etl-serverless-data/Raw/",
+                  "--OUTPUT_BUCKET": "s3://test-v1-etl-serverless-data/Staging/"
+                }
+              },
+              "Next": "GlueStartJobRunQuality"
+            },
+            "GlueStartJobRunQuality": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "GlueQuality",
+                "Arguments": {
+                  "--INPUT_BUCKET": "s3://test-v1-etl-serverless-data/Staging/",
+                  "--OUTPUT_BUCKET": "s3://test-v1-etl-serverless-data/Results/"
+                }
+              },
+              "End": true
+            }
+          }
+        }
+
+Outputs:
+  ArnStepFunction:
+    Value: !GetAtt MyStepFunction.Arn
+    Export:
+      Name: ArnStepFunction
